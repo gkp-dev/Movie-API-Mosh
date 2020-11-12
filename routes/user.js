@@ -22,19 +22,18 @@ router.get("/", async(req, res) => {
 router.post("/", (req, res) => {
     //
     async function createUser() {
-
-        //
         //retreive the user and if he had been register
         let user = await User.findOne({ email: req.body.email })
         if (user) {
             res.status(400).send('User already registered')
         }
+        //validation
+        const { error } = validateUser(req.body);
+        if (error) {
+            res.status(400).send(error.details[0].message)
+        }
         //If not
         user = new User(_.pick(req.body, ["name", "email", "password"]));
-
-        //Validation
-        const { error } = validateUser(user);
-        if (error) res.status(400).send(error.details[0].message)
 
         //hashing the password
         const salt = await bcrypt.genSalt(10);
@@ -50,7 +49,12 @@ router.post("/", (req, res) => {
 
 router.put('/:id', (req, res) => {
     async function updateUser() {
-        //
+        //Validation
+        const { error } = validateUser(req.body);
+        if (error) {
+            res.status(400).send(error.details[0].message)
+        }
+        //Update
         const user = await User.updateOne({ _id: req.params.id }, {
             $set: {
                 name: req.body.name,
@@ -58,7 +62,6 @@ router.put('/:id', (req, res) => {
                 password: req.body.password
             }
         })
-        validateUser(user);
         res.json("User has been modified successfuly..")
             //
     }
