@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Joi = require("joi");
+const jwt = require('jsonwebtoken');
 
 const userSchema = new mongoose.Schema({
     name: {
@@ -22,6 +23,12 @@ const userSchema = new mongoose.Schema({
         required: true
     },
 })
+
+//Add authentification methods
+userSchema.methods.generateAuthToken = function() {
+    return jwt.sign({ _id: this._id }, `${process.env.jwtPrivateKey}`);
+
+}
 
 const User = mongoose.model("user", userSchema);
 

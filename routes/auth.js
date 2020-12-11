@@ -1,4 +1,3 @@
-const jwt = require('jsonwebtoken')
 const express = require("express");
 const bcrypt = require("bcrypt");
 const Joi = require("joi");
@@ -42,7 +41,7 @@ router.post("/", (req, res) => {
         if (!validPassword) {
             res.status(400).send('Invalid email or password')
         }
-        const token = jwt.sign({ _id: user._id }, `${process.env.jwtPrivateKey}`);
+        const token = user.generateAuthToken();
         res.json(token)
 
     }
