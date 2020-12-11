@@ -1,10 +1,13 @@
-const express = require("express");
 const jwt = require('jsonwebtoken')
+const express = require("express");
 const bcrypt = require("bcrypt");
+const Joi = require("joi");
 const _ = require("lodash");
-const { User, validateUser } = require("../models/user");
+
+const { User } = require("../models/user");
 
 const router = express.Router();
+
 
 //middleware
 router.use(express.json());
@@ -27,28 +30,34 @@ router.post("/", (req, res) => {
         //validation
         const { error } = validateUser(req.body);
         if (error) {
-            return res.status(400).send(error.details[0].message)
+            res.status(400).send(error.details[0].message)
         }
-
         //retreive the user and if he had been register
         let user = await User.findOne({ email: req.body.email })
-        if (user) {
-            return res.status(400).json('User already registered')
+        if (!user) {
+            res.status(400).send('Invalid email or password')
         }
 
-        //If not
-        user = new User(_.pick(req.body, ["name", "email", "password"]));
-
-        //hashing the password
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(user.password, salt)
-
-        await user.save();
+        const validPassword = await bcrypt.compare(req.body.password, user.password);
+        if (!validPassword) {
+            res.status(400).send('Invalid email or password')
+        }
         const token = jwt.sign({ _id: user._id }, `${process.env.jwtPrivateKey}`);
-        res.header('x-auth-token', token).json(_.pick(user, ["_id", "name", "email"]));
+        res.json(token)
+
     }
     //
     createUser()
+
+    function validateUser(req) {
+        //
+        const validationSchema = Joi.object({
+            email: Joi.string().min(3).max(255).required(),
+            password: Joi.string().min(5).max(255).required(),
+        })
+        return validationSchema.validate(req);
+
+    }
 
 })
 
